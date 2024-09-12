@@ -1,22 +1,49 @@
-import { http, createConfig } from 'wagmi'
-import { mainnet, sepolia } from 'wagmi/chains'
-import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
+import { http, createConfig } from "wagmi";
+import { Chain } from "wagmi/chains";
+import { coinbaseWallet } from "wagmi/connectors";
 
+// Define la cadena zKyoto con su respectiva configuración
+export const zKyoto: Chain = {
+  id: 6038361, // Chain ID correcto para zKyoto
+  name: "zKyoto",
+  network: "zKyoto (zkEVM testnet)",
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.startale.com/zkyoto"], // RPC de Startale Labs
+    },
+    public: {
+      http: ["https://astar-zkyoto-rpc.dwellir.com"], // RPC de Dwellir
+    },
+  },
+  nativeCurrency: {
+    name: "Ethereum",
+    symbol: "ETH", // Símbolo de la moneda nativa en zKyoto
+    decimals: 18,
+  },
+  blockExplorers: {
+    default: {
+      name: "zKyoto Explorer",
+      url: "https://explorer.zkyoto.network",
+    }, // Explorador de bloques (reemplázalo con el correcto si lo conoces)
+  },
+  parentChain: {
+    name: "Sepolia", // Cadena padre de zKyoto
+  },
+};
+
+// Configuración con zKyoto
 export const config = createConfig({
-  chains: [mainnet, sepolia],
+  chains: [zKyoto],
   connectors: [
-    injected(),
-    coinbaseWallet(),
-    walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
+    coinbaseWallet({ appName: "Create Wagmi", preference: "smartWalletOnly" }),
   ],
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [zKyoto.id]: http(),
   },
-})
+});
 
-declare module 'wagmi' {
+declare module "wagmi" {
   interface Register {
-    config: typeof config
+    config: typeof config;
   }
 }
