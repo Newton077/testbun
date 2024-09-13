@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { CoinbaseWalletSDK } from "@coinbase/wallet-sdk";
+import { ethers } from "ethers";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   Bell,
   ChevronDown,
-  CreditCard,
   DollarSign,
   LineChart,
   Network,
@@ -90,14 +91,62 @@ const networkData: Record<string, NetworkData> = {
   },
 };
 
+// Configuración de Coinbase Wallet SDK
+const APP_NAME = "BUN Wallet";
+const APP_LOGO_URL = "https://example.com/logo.png"; // Cambia esto por tu logo
+const DEFAULT_ETH_JSONRPC_URL =
+  "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID";
+const DEFAULT_CHAIN_ID = 1;
+
 export default function WalletDashboard() {
   const [selectedNetwork, setSelectedNetwork] = useState(networks[0]);
   const currentNetworkData = networkData[selectedNetwork.id];
 
-  // Manejo de conexión con wagmi
   const { address, isConnected } = useAccount();
   const { connect, connectors, isLoading, pendingConnector } = useConnect();
   const { disconnect } = useDisconnect();
+
+  // Configuración de Coinbase Wallet SDK
+  const [coinbaseProvider, setCoinbaseProvider] = useState<any>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isCoinbaseConnected, setIsCoinbaseConnected] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    const coinbaseWallet = new CoinbaseWalletSDK({
+      appName: APP_NAME,
+      appLogoUrl: APP_LOGO_URL,
+      darkMode: false,
+    });
+
+    const ethereum = coinbaseWallet.makeWeb3Provider(
+      DEFAULT_ETH_JSONRPC_URL,
+      DEFAULT_CHAIN_ID
+    );
+
+    setCoinbaseProvider(ethereum);
+  }, []);
+
+  // Conectar Coinbase Wallet
+  const connectCoinbaseWallet = async () => {
+    if (coinbaseProvider) {
+      try {
+        const accounts = await coinbaseProvider.request({
+          method: "eth_requestAccounts",
+        });
+        setWalletAddress(accounts[0]);
+        setIsCoinbaseConnected(true);
+      } catch (error) {
+        console.error("Error al conectar con Coinbase Wallet", error);
+      }
+    }
+  };
+
+  // Desconectar Coinbase Wallet
+  const disconnectCoinbaseWallet = () => {
+    setWalletAddress(null);
+    setIsCoinbaseConnected(false);
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -114,7 +163,6 @@ export default function WalletDashboard() {
             <DollarSign className="h-5 w-5" />
             <span>Dashboard</span>
           </Link>
-
           <Link
             to="#"
             className="flex items-center space-x-2 text-gray-700 hover:bg-gray-100 rounded p-2"
@@ -156,13 +204,13 @@ export default function WalletDashboard() {
           <div className="bg-white shadow-md rounded-lg p-6">
             <h2 className="text-2xl font-semibold mb-4">Account</h2>
             <div className="text-gray-700">
-              {isConnected ? (
+              {isCoinbaseConnected ? (
                 <>
                   <div className="mb-2">
-                    <strong>Status:</strong> Conectado
+                    <strong>Status:</strong> Conectado a Coinbase Wallet
                   </div>
                   <div className="mb-2">
-                    <strong>Address:</strong> {address}
+                    <strong>Address:</strong> {walletAddress}
                   </div>
                 </>
               ) : (
@@ -172,30 +220,21 @@ export default function WalletDashboard() {
               )}
             </div>
 
-            {isConnected ? (
+            {isCoinbaseConnected ? (
               <Button
                 variant="outline"
-                onClick={() => disconnect()}
+                onClick={disconnectCoinbaseWallet}
                 className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 mt-4"
               >
-                Desconectar Wallet
+                Desconectar Coinbase Wallet
               </Button>
             ) : (
-              <div>
-                {connectors.map((connector) => (
-                  <Button
-                    key={connector.id}
-                    onClick={() => connect({ connector })}
-                    disabled={!connector.ready}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 mt-4"
-                  >
-                    {connector.name}
-                    {isLoading &&
-                      connector.id === pendingConnector?.id &&
-                      " (conectando)"}
-                  </Button>
-                ))}
-              </div>
+              <Button
+                onClick={connectCoinbaseWallet}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 mt-4"
+              >
+                Conectar Coinbase Wallet
+              </Button>
             )}
           </div>
         </div>
@@ -211,12 +250,12 @@ export default function WalletDashboard() {
             </Button>
             <Button variant="outline" className="flex items-center space-x-2">
               <User className="h-4 w-4" />
-              <span>{address || "Wallet "}</span>
+              <span>{walletAddress || "Wallet"}</span>
             </Button>
           </div>
         </div>
 
-        {/* Balance */}
+        {/* Saldo total */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Saldo Total en {selectedNetwork.name}</CardTitle>
@@ -231,7 +270,7 @@ export default function WalletDashboard() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
+        {/* Acciones */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Button className="flex items-center justify-center space-x-2">
             <Send className="h-4 w-4" />
@@ -246,94 +285,79 @@ export default function WalletDashboard() {
           </Button>
         </div>
 
-        {/* Chart */}
+        {/* Transacciones Recientes */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Historial de Saldo en {selectedNetwork.name}</CardTitle>
+            <CardTitle>
+              Transacciones Recientes en {selectedNetwork.name}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[200px] w-full bg-gradient-to-r from-blue-200 to-blue-100 rounded-md"></div>
+            <ul className="space-y-4">
+              {currentNetworkData.recentTransactions.map(
+                (transaction, index) => (
+                  <li key={index} className="flex items-center">
+                    {transaction.type === "in" ? (
+                      <ArrowUpIcon className="h-4 w-4 text-green-500 mr-2" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 text-red-500 mr-2" />
+                    )}
+                    <span className="flex-1">{transaction.description}</span>
+                    <span className="font-semibold">{transaction.amount}</span>
+                  </li>
+                )
+              )}
+            </ul>
           </CardContent>
         </Card>
 
-        {/* Transactions and Crypto */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Recent Transactions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Transacciones Recientes en {selectedNetwork.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {currentNetworkData.recentTransactions.map(
-                  (transaction, index) => (
-                    <li key={index} className="flex items-center">
-                      {transaction.type === "in" ? (
-                        <ArrowUpIcon className="h-4 w-4 text-green-500 mr-2" />
-                      ) : (
-                        <ArrowDownIcon className="h-4 w-4 text-red-500 mr-2" />
-                      )}
-                      <span className="flex-1">{transaction.description}</span>
-                      <span className="font-semibold">
-                        {transaction.amount}
-                      </span>
-                    </li>
-                  )
-                )}
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Crypto Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Resumen de Criptomonedas en {selectedNetwork.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs
-                defaultValue={currentNetworkData.cryptoOverview[0].name.toLowerCase()}
-                className="w-full"
-              >
-                <TabsList>
-                  {currentNetworkData.cryptoOverview.map((crypto) => (
-                    <TabsTrigger
-                      key={crypto.name}
-                      value={crypto.name.toLowerCase()}
-                    >
-                      {crypto.name}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+        {/* Resumen de Criptomonedas */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Resumen de Criptomonedas en {selectedNetwork.name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs
+              defaultValue={currentNetworkData.cryptoOverview[0].name.toLowerCase()}
+              className="w-full"
+            >
+              <TabsList>
                 {currentNetworkData.cryptoOverview.map((crypto) => (
-                  <TabsContent
+                  <TabsTrigger
                     key={crypto.name}
                     value={crypto.name.toLowerCase()}
                   >
-                    <div className="mt-4">
-                      <div className="text-2xl font-bold">{crypto.price}</div>
-                      <p className="text-sm text-muted-foreground">
-                        1 {crypto.name} = {crypto.price}
-                      </p>
-                      <p
-                        className={`text-sm ${
-                          crypto.change.startsWith("+")
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {crypto.change} (24h)
-                      </p>
-                    </div>
-                  </TabsContent>
+                    {crypto.name}
+                  </TabsTrigger>
                 ))}
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+              </TabsList>
+              {currentNetworkData.cryptoOverview.map((crypto) => (
+                <TabsContent
+                  key={crypto.name}
+                  value={crypto.name.toLowerCase()}
+                >
+                  <div className="mt-4">
+                    <div className="text-2xl font-bold">{crypto.price}</div>
+                    <p className="text-sm text-muted-foreground">
+                      1 {crypto.name} = {crypto.price}
+                    </p>
+                    <p
+                      className={`text-sm ${
+                        crypto.change.startsWith("+")
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {crypto.change} (24h)
+                    </p>
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
