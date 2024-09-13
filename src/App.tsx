@@ -1,46 +1,15 @@
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import WalletDashboard from "./components/ui/WalletDashboard";
 
 function App() {
-  const account = useAccount()
-  const { connectors, connect, status, error } = useConnect()
-  const { disconnect } = useDisconnect()
-
   return (
-    <>
-      <div>
-        <h2>Account</h2>
-
-        <div>
-          status: {account.status}
-          <br />
-          addresses: {JSON.stringify(account.addresses)}
-          <br />
-          chainId: {account.chainId}
-        </div>
-
-        {account.status === 'connected' && (
-          <button type="button" onClick={() => disconnect()}>
-            Disconnect
-          </button>
-        )}
-      </div>
-
-      <div>
-        <h2>Connect</h2>
-        {connectors.map((connector) => (
-          <button
-            key={connector.uid}
-            onClick={() => connect({ connector })}
-            type="button"
-          >
-            {connector.name}
-          </button>
-        ))}
-        <div>{status}</div>
-        <div>{error?.message}</div>
-      </div>
-    </>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<WalletDashboard />} />
+        {/* Puedes agregar más rutas aquí si es necesario */}
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

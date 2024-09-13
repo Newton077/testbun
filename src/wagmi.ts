@@ -24,21 +24,45 @@ export const zKyoto: Chain = {
     default: {
       name: "zKyoto Explorer",
       url: "https://explorer.zkyoto.network",
-    }, // Explorador de bloques (reemplázalo con el correcto si lo conoces)
+    }, // Explorador de bloques
   },
   parentChain: {
     name: "Sepolia", // Cadena padre de zKyoto
   },
 };
 
-// Configuración con zKyoto
+// Define la cadena Core Blockchain Testnet con su respectiva configuración
+export const coreTestnet: Chain = {
+  id: 1115, // Chain ID de Core Blockchain Testnet
+  name: "Core Blockchain Testnet",
+  network: "core-testnet",
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.test.btcs.network"], // RPC de la red Core Blockchain Testnet
+    },
+  },
+  nativeCurrency: {
+    name: "Core Test Token",
+    symbol: "tCORE", // Símbolo de la moneda nativa en Core Testnet
+    decimals: 18,
+  },
+  blockExplorers: {
+    default: {
+      name: "Core Testnet Explorer",
+      url: "https://explorer.test.btcs.network", // Explorador de bloques de Core Testnet
+    },
+  },
+};
+
+// Configuración con ambas cadenas zKyoto y Core Testnet
 export const config = createConfig({
-  chains: [zKyoto],
+  chains: [zKyoto, coreTestnet], // Añade las dos redes
   connectors: [
     coinbaseWallet({ appName: "Create Wagmi", preference: "smartWalletOnly" }),
   ],
   transports: {
     [zKyoto.id]: http(),
+    [coreTestnet.id]: http(), // Añade transporte HTTP para Core Testnet
   },
 });
 
