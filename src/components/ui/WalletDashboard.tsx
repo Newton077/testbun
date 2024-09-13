@@ -43,7 +43,7 @@ interface NetworkData {
 
 // Datos del dashboard
 const networks = [
-  { id: "ethereum", name: "Star Network", icon: "🔷" },
+  { id: "ethereum", name: "Astar Network", icon: "🔷" },
   { id: "bsc", name: "CoreDAO", icon: "🟨" },
   { id: "polygon", name: "Polygon", icon: "🟣" },
 ];
@@ -120,7 +120,7 @@ export default function WalletDashboard() {
             className="flex items-center space-x-2 text-gray-700 hover:bg-gray-100 rounded p-2"
           >
             <LineChart className="h-5 w-5" />
-            <span>Swap</span>
+            <span> Swap </span>
           </Link>
         </nav>
 
@@ -211,7 +211,7 @@ export default function WalletDashboard() {
             </Button>
             <Button variant="outline" className="flex items-center space-x-2">
               <User className="h-4 w-4" />
-              <span>{address || "Conéctate"}</span>
+              <span>{address || "Wallet "}</span>
             </Button>
           </div>
         </div>
